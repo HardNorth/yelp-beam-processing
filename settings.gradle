@@ -1,0 +1,3 @@
+include 'yelp-pgsql-import'
+
+rootProject.name = 'yelp-beam-processing'

@@ -1,0 +1,21 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+configure(allprojects - rootProject) {
+    apply plugin: 'java'
+
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    apply from: "${rootDir}/dependencies.gradle"
+}
+
+group = "net.hardnorth.yelp"
+version = "1.0-SNAPSHOT"
