@@ -4,7 +4,6 @@ import com.google.datastore.v1.Entity;
 import com.google.datastore.v1.Key;
 import com.google.datastore.v1.Value;
 import com.google.datastore.v1.client.DatastoreHelper;
-import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.TextIO;
@@ -22,6 +21,7 @@ import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import static org.apache.beam.sdk.values.TypeDescriptors.maps;
@@ -32,7 +32,7 @@ public class IngestBusiness
     private static final Logger LOGGER = LoggerFactory.getLogger(IngestBusiness.class);
 
     private static final Gson GSON = new GsonBuilder().create();
-    private static final Type RAW_MAP_TYPE = new TypeToken<Map<String, String>>()
+    private static final Type RAW_MAP_TYPE = new TypeToken<Map<String, Object>>()
     {
     }.getType();
 
@@ -51,9 +51,10 @@ public class IngestBusiness
                         .via((s) -> {
                             try
                             {
-                                return GSON.fromJson(s, RAW_MAP_TYPE);
+                                return ((Map<String, Object>)GSON.fromJson(s, RAW_MAP_TYPE))
+                                        .entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, v->String.valueOf(v.getValue())));
                             }
-                            catch (JsonSyntaxException e)
+                            catch (Throwable e)
                             {
                                 LOGGER.warn("Unable to deserialize Json: " + s, e);
                                 return null;
