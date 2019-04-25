@@ -41,23 +41,28 @@ public class IngestBusiness
         LOGGER.info("Running with parameters:" + Arrays.asList(args).toString());
         IngestOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(IngestOptions.class);
 
-        Pipeline p = Pipeline.create(options);
-        p.apply(TextIO.read().from(options.getDataSourceReference()))
-                .apply(Filter.by((s) -> s.contains("\"state\":")))
-                .apply(MapElements
-                        // uses imports from TypeDescriptors
-                        .into(maps(strings(), strings()))
-                        .via((s) -> GSON.fromJson(s, RAW_MAP_TYPE)))
-                .apply(MapElements
-                        .into(TypeDescriptor.of(Entity.class))
-                        .via(input -> {
-                            Key keyField = DatastoreHelper.makeKey(input.get(options.getKeyField())).build();
-                            Map<String, Value> result = input.entrySet().stream()
-                                    .filter(e -> !e.getKey().equals(options.getKeyField()))
-                                    .collect(Collectors.toMap(Map.Entry::getKey, v -> DatastoreHelper.makeValue(v.getValue()).build()));
+        try
+        {
+            Pipeline p = Pipeline.create(options);
+            p.apply(TextIO.read().from(options.getDataSourceReference()))
+                    .apply(Filter.by((s) -> s.contains("\"state\":")))
+                    .apply(MapElements
+                            // uses imports from TypeDescriptors
+                            .into(maps(strings(), strings()))
+                            .via((s) -> GSON.fromJson(s, RAW_MAP_TYPE)))
+                    .apply(MapElements
+                            .into(TypeDescriptor.of(Entity.class))
+                            .via(input -> {
+                                Key keyField = DatastoreHelper.makeKey(input.get(options.getKeyField())).build();
+                                Map<String, Value> result = input.entrySet().stream()
+                                        .filter(e -> !e.getKey().equals(options.getKeyField()))
+                                        .collect(Collectors.toMap(Map.Entry::getKey, v -> DatastoreHelper.makeValue(v.getValue()).build()));
 
-                            return Entity.newBuilder().setKey(keyField).putAllProperties(result).build();
-                        }))
-                .apply(DatastoreIO.v1().write().withProjectId(options.getProject()));
+                                return Entity.newBuilder().setKey(keyField).putAllProperties(result).build();
+                            }))
+                    .apply(DatastoreIO.v1().write().withProjectId(options.getProject()));
+        } catch (Exception e){
+            LOGGER.error("Unable to execute pipeline", e);
+        }
     }
 }
