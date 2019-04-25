@@ -14,8 +14,4 @@ public interface IngestOptions extends PipelineOptions
     @Default.String("id")
     String getKeyField();
     void setKeyField(String keyField);
-
-    @Description("GCP Project ID")
-    String getProject();
-    void setProject(String id);
 }

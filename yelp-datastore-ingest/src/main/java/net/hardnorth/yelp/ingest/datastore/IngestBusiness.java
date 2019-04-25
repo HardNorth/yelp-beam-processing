@@ -5,6 +5,7 @@ import com.google.datastore.v1.Key;
 import com.google.datastore.v1.Value;
 import com.google.datastore.v1.client.DatastoreHelper;
 import com.google.gson.reflect.TypeToken;
+import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.io.gcp.datastore.DatastoreIO;
@@ -39,6 +40,7 @@ public class IngestBusiness
     {
         LOGGER.info("Running with parameters:" + Arrays.asList(args).toString());
         IngestOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(IngestOptions.class);
+        DataflowPipelineOptions dataflowOptions =  PipelineOptionsFactory.fromArgs(args).withValidation().as(DataflowPipelineOptions.class);
 
         Pipeline p = Pipeline.create(options);
         p.apply(TextIO.read().from(options.getDataSourceReference()))
@@ -57,6 +59,6 @@ public class IngestBusiness
 
                             return Entity.newBuilder().setKey(keyField).putAllProperties(result).build();
                         }))
-                .apply(DatastoreIO.v1().write().withProjectId(options.getProject()));
+                .apply(DatastoreIO.v1().write().withProjectId(dataflowOptions.getProject()));
     }
 }
