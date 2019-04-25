@@ -40,7 +40,6 @@ public class IngestBusiness
     {
         LOGGER.info("Running with parameters:" + Arrays.asList(args).toString());
         IngestOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(IngestOptions.class);
-        DataflowPipelineOptions dataflowOptions =  PipelineOptionsFactory.fromArgs(args).as(DataflowPipelineOptions.class);
 
         Pipeline p = Pipeline.create(options);
         p.apply(TextIO.read().from(options.getDataSourceReference()))
@@ -59,6 +58,6 @@ public class IngestBusiness
 
                             return Entity.newBuilder().setKey(keyField).putAllProperties(result).build();
                         }))
-                .apply(DatastoreIO.v1().write().withProjectId(dataflowOptions.getProject()));
+                .apply(DatastoreIO.v1().write().withProjectId(options.getProject()));
     }
 }

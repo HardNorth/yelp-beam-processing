@@ -1,10 +1,10 @@
 package net.hardnorth.yelp.ingest.datastore;
 
+import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
-import org.apache.beam.sdk.options.PipelineOptions;
 
-public interface IngestOptions extends PipelineOptions
+public interface IngestOptions extends DataflowPipelineOptions
 {
     @Description("A reference on Data Source as URI, e.g.: gs://yelp-dataset/business.json")
     String getDataSourceReference();
