@@ -1,4 +1,4 @@
-package net.hardnorth.yelp.ingest.pgsql;
+package net.hardnorth.yelp.ingest.datastore;
 
 import com.google.datastore.v1.Entity;
 import com.google.datastore.v1.Key;
@@ -18,7 +18,6 @@ import org.apache.beam.vendor.grpc.v1p13p1.com.google.gson.GsonBuilder;
 
 import java.lang.reflect.Type;
 import java.util.Map;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import static org.apache.beam.sdk.values.TypeDescriptors.maps;
@@ -27,35 +26,32 @@ import static org.apache.beam.sdk.values.TypeDescriptors.strings;
 public class IngestBusiness
 {
     private static final Gson GSON = new GsonBuilder().create();
-    private static final Type MAP_OF_STRINGS = new TypeToken<Map<String, String>>()
+    private static final Type RAW_MAP_TYPE = new TypeToken<Map<String, String>>()
     {
     }.getType();
 
-    private static final String PROJECT_ID = "MBT-ML";
-    private static final String TABLE_ID = "business";
-
-    private static final Key KEY_FIELD = DatastoreHelper.makeKey("business_id").build();
-
-    public static void main(String[] args) throws Exception
+    public static void main(String[] args)
     {
-        PipelineOptions options = PipelineOptionsFactory.create();
+        PipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().create();
+        IngestOptions ingestOptions = options.as(IngestOptions.class);
 
         Pipeline p = Pipeline.create(options);
-        p.apply(TextIO.read().from("gs://vh-yelp-dataset/" + TABLE_ID + ".json"))
+        p.apply(TextIO.read().from(ingestOptions.getDataSourceReference()))
                 .apply(Filter.by((s) -> s.contains("\"state\":")))
                 .apply(MapElements
                         // uses imports from TypeDescriptors
                         .into(maps(strings(), strings()))
-                        .via((s) -> GSON.fromJson(s, MAP_OF_STRINGS)))
-                .apply(MapElements
-                        // uses imports from TypeDescriptors
-                        .into(maps(strings(), TypeDescriptor.of(Value.class)))
-                        .via((Map<String, String> m) -> m.entrySet().stream().collect(Collectors.toMap(e->e.getKey(), v->DatastoreHelper.makeValue(v.getValue())))))
+                        .via((s) -> GSON.fromJson(s, RAW_MAP_TYPE)))
                 .apply(MapElements
                         .into(TypeDescriptor.of(Entity.class))
-                        .via((Map<String, String> m) -> {
-                            Entity.newBuilder().setKey(KEY_FIELD).p;
-                        })
-                .apply(DatastoreIO.v1().write().withProjectId(PROJECT_ID));
+                        .via(input -> {
+                            Key keyField = DatastoreHelper.makeKey(input.get(ingestOptions.getKeyField())).build();
+                            Map<String, Value> result = input.entrySet().stream()
+                                    .filter(e -> !e.getKey().equals(ingestOptions.getKeyField()))
+                                    .collect(Collectors.toMap(Map.Entry::getKey, v -> DatastoreHelper.makeValue(v.getValue()).build()));
+
+                            return Entity.newBuilder().setKey(keyField).putAllProperties(result).build();
+                        }))
+                .apply(DatastoreIO.v1().write());
     }
 }

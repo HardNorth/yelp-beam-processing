@@ -1,0 +1,29 @@
+/*
+ * Copyright (C) 2019 Epic Games, Inc. All Rights Reserved.
+ */
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'org.apache.beam:beam-runners-google-cloud-dataflow-java:2.11.0'
+}
+
+task execute(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = System.getProperty("exec.mainClass")
+    args = System.getProperty("exec.args") != null
+            ? System.getProperty("exec.args").split('\\s(?=(?:[^\\"]*\\"[^\\"]*\\")*[^\\"]*$)')
+            : []
+}
+
+group = "net.hardnorth.yelp.ingest.datastore"
+version = "1.0-SNAPSHOT"
