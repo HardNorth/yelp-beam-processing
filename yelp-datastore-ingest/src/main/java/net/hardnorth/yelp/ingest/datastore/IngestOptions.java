@@ -11,7 +11,7 @@ public interface IngestOptions extends PipelineOptions
     void setDataSourceReference(String reference);
 
     @Description("Which field use as key, e.g.: 'business_id'")
-    String getKeyField();
     @Default.String("id")
+    String getKeyField();
     void setKeyField(String keyField);
 }
