@@ -4,6 +4,7 @@ import com.google.datastore.v1.Entity;
 import com.google.datastore.v1.Key;
 import com.google.datastore.v1.Value;
 import com.google.datastore.v1.client.DatastoreHelper;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.TextIO;
@@ -20,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static org.apache.beam.sdk.values.TypeDescriptors.maps;
@@ -46,7 +48,18 @@ public class IngestBusiness
                 .apply("Convert to Map<String, String> through JSON DOM", MapElements
                         // uses imports from TypeDescriptors
                         .into(maps(strings(), strings()))
-                        .via((s) -> GSON.fromJson(s, RAW_MAP_TYPE)))
+                        .via((s) -> {
+                            try
+                            {
+                                return GSON.fromJson(s, RAW_MAP_TYPE);
+                            }
+                            catch (JsonSyntaxException e)
+                            {
+                                LOGGER.warn("Unable to deserialize Json: " + s, e);
+                                return null;
+                            }
+                        }))
+                .apply("Filter nulls", Filter.by(Objects::nonNull))
                 .apply("Wrap as Entity objects for Datastore", MapElements
                         .into(TypeDescriptor.of(Entity.class))
                         .via(input -> {
