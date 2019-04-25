@@ -21,8 +21,8 @@ task execute(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     main = System.getProperty("exec.mainClass")
     args = System.getProperty("exec.args") != null
-            ? System.getProperty("exec.args").split('\\s(?=(?:[^\\"]*\\"[^\\"]*\\")*[^\\"]*$)')
-            : []
+            ? Arrays.asList(System.getProperty("exec.args").split('\\s(?=(?:[^\\"]*\\"[^\\"]*\\")*[^\\"]*$)'))
+            : Collections.emptyList()
 }
 
 group = "net.hardnorth.yelp.ingest.datastore"
