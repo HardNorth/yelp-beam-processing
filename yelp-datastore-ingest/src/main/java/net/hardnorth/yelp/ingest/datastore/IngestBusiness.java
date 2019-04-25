@@ -38,6 +38,7 @@ public class IngestBusiness
     {
         LOGGER.info("Running with parameters:" + Arrays.asList(args).toString());
         IngestOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(IngestOptions.class);
+        final String keyFieldId = options.getKeyField();
 
         Pipeline p = Pipeline.create(options);
         p.apply("Read input file line-by-line", TextIO.read().from(options.getDataSourceReference()))
@@ -49,9 +50,9 @@ public class IngestBusiness
                 .apply("Wrap as Entity objects for Datastore", MapElements
                         .into(TypeDescriptor.of(Entity.class))
                         .via(input -> {
-                            Key keyField = DatastoreHelper.makeKey(input.get(options.getKeyField())).build();
+                            Key keyField = DatastoreHelper.makeKey(input.get(keyFieldId)).build();
                             Map<String, Value> result = input.entrySet().stream()
-                                    .filter(e -> !e.getKey().equals(options.getKeyField()))
+                                    .filter(e -> !e.getKey().equals(keyFieldId))
                                     .collect(Collectors.toMap(Map.Entry::getKey, v -> DatastoreHelper.makeValue(v.getValue()).build()));
 
                             return Entity.newBuilder().setKey(keyField).putAllProperties(result).build();
