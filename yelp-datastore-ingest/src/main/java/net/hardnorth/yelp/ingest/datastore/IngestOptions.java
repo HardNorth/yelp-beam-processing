@@ -14,4 +14,8 @@ public interface IngestOptions extends DataflowPipelineOptions
     @Default.String("id")
     String getKeyField();
     void setKeyField(String keyField);
+
+    @Description("Table name to save")
+    String getTableName();
+    void setTableName(String table);
 }
