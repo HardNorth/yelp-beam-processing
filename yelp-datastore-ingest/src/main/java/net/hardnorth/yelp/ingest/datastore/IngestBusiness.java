@@ -57,6 +57,6 @@ public class IngestBusiness
 
                             return Entity.newBuilder().setKey(keyField).putAllProperties(result).build();
                         }))
-                .apply(DatastoreIO.v1().write().withProjectId(options.getProjectId()));
+                .apply(DatastoreIO.v1().write().withProjectId(options.getProject()));
     }
 }
