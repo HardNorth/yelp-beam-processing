@@ -40,7 +40,7 @@ public class IngestBusiness
     {
         LOGGER.info("Running with parameters:" + Arrays.asList(args).toString());
         IngestOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(IngestOptions.class);
-        DataflowPipelineOptions dataflowOptions =  PipelineOptionsFactory.fromArgs(args).withValidation().as(DataflowPipelineOptions.class);
+        DataflowPipelineOptions dataflowOptions =  PipelineOptionsFactory.fromArgs(args).as(DataflowPipelineOptions.class);
 
         Pipeline p = Pipeline.create(options);
         p.apply(TextIO.read().from(options.getDataSourceReference()))
