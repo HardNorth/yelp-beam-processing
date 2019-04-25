@@ -5,11 +5,9 @@ import com.google.datastore.v1.Key;
 import com.google.datastore.v1.Value;
 import com.google.datastore.v1.client.DatastoreHelper;
 import com.google.gson.reflect.TypeToken;
-import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.io.gcp.datastore.DatastoreIO;
-import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.Filter;
 import org.apache.beam.sdk.transforms.MapElements;
@@ -41,28 +39,23 @@ public class IngestBusiness
         LOGGER.info("Running with parameters:" + Arrays.asList(args).toString());
         IngestOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(IngestOptions.class);
 
-        try
-        {
-            Pipeline p = Pipeline.create(options);
-            p.apply(TextIO.read().from(options.getDataSourceReference()))
-                    .apply(Filter.by((s) -> s.contains("\"state\":")))
-                    .apply(MapElements
-                            // uses imports from TypeDescriptors
-                            .into(maps(strings(), strings()))
-                            .via((s) -> GSON.fromJson(s, RAW_MAP_TYPE)))
-                    .apply(MapElements
-                            .into(TypeDescriptor.of(Entity.class))
-                            .via(input -> {
-                                Key keyField = DatastoreHelper.makeKey(input.get(options.getKeyField())).build();
-                                Map<String, Value> result = input.entrySet().stream()
-                                        .filter(e -> !e.getKey().equals(options.getKeyField()))
-                                        .collect(Collectors.toMap(Map.Entry::getKey, v -> DatastoreHelper.makeValue(v.getValue()).build()));
+        Pipeline p = Pipeline.create(options);
+        p.apply(TextIO.read().from(options.getDataSourceReference()))
+                .apply(Filter.by((s) -> s.contains("\"state\":")))
+                .apply(MapElements
+                        // uses imports from TypeDescriptors
+                        .into(maps(strings(), strings()))
+                        .via((s) -> GSON.fromJson(s, RAW_MAP_TYPE)))
+                .apply(MapElements
+                        .into(TypeDescriptor.of(Entity.class))
+                        .via(input -> {
+                            Key keyField = DatastoreHelper.makeKey(input.get(options.getKeyField())).build();
+                            Map<String, Value> result = input.entrySet().stream()
+                                    .filter(e -> !e.getKey().equals(options.getKeyField()))
+                                    .collect(Collectors.toMap(Map.Entry::getKey, v -> DatastoreHelper.makeValue(v.getValue()).build()));
 
-                                return Entity.newBuilder().setKey(keyField).putAllProperties(result).build();
-                            }))
-                    .apply(DatastoreIO.v1().write().withProjectId(options.getProject()));
-        } catch (Exception e){
-            LOGGER.error("Unable to execute pipeline", e);
-        }
+                            return Entity.newBuilder().setKey(keyField).putAllProperties(result).build();
+                        }))
+                .apply(DatastoreIO.v1().write().withProjectId(options.getProject()));
     }
 }

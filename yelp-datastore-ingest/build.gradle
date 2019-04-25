@@ -28,3 +28,15 @@ task execute(type: JavaExec) {
 
 group = "net.hardnorth.yelp.ingest.datastore"
 version = "1.0-SNAPSHOT"
+
+jar {
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+}
+
+build.dependsOn jar
