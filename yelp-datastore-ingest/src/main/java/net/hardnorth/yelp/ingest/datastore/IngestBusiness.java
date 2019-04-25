@@ -1,5 +1,7 @@
 package net.hardnorth.yelp.ingest.datastore;
 
+import com.google.api.services.bigquery.model.TableReference;
+import com.google.api.services.bigquery.model.TableRow;
 import com.google.datastore.v1.Entity;
 import com.google.datastore.v1.Key;
 import com.google.datastore.v1.Value;
@@ -7,6 +9,7 @@ import com.google.datastore.v1.client.DatastoreHelper;
 import com.google.gson.reflect.TypeToken;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.TextIO;
+import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
 import org.apache.beam.sdk.io.gcp.datastore.DatastoreIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.Filter;
@@ -26,6 +29,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.beam.sdk.values.TypeDescriptors.maps;
 import static org.apache.beam.sdk.values.TypeDescriptors.strings;
+import static org.apache.beam.sdk.values.TypeDescriptor.of;
 
 public class IngestBusiness
 {
@@ -40,8 +44,7 @@ public class IngestBusiness
     {
         LOGGER.info("Running with parameters:" + Arrays.asList(args).toString());
         IngestOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(IngestOptions.class);
-        final String keyFieldId = options.getKeyField();
-        final String tableName = options.getTableName();
+        final TableReference tr = new TableReference().setProjectId(options.getProject()).setDatasetId(options.getDatasetId()).setTableId(options.getTableName());
 
         Pipeline p = Pipeline.create(options);
         p.apply("Read input file line-by-line", TextIO.read().from(options.getDataSourceReference()))
@@ -62,17 +65,19 @@ public class IngestBusiness
                             }
                         }))
                 .apply("Filter nulls", Filter.by(Objects::nonNull))
-                .apply("Wrap as Entity objects for Datastore", MapElements
-                        .into(TypeDescriptor.of(Entity.class))
-                        .via(input -> {
-                            Key keyField = DatastoreHelper.makeKey(tableName, input.get(keyFieldId)).build();
-                            Map<String, Value> result = input.entrySet().stream()
-                                    .filter(e -> !e.getKey().equals(keyFieldId))
-                                    .collect(Collectors.toMap(Map.Entry::getKey, v -> DatastoreHelper.makeValue(v.getValue()).build()));
-
-                            return Entity.newBuilder().setKey(keyField).putAllProperties(result).build();
+                .apply("Wrap as TableRow objects for BigQuery", MapElements
+                        .into(of(TableRow.class))
+                        .via((Map<String, String> input) -> {
+                            TableRow row = new TableRow();
+                            for(Map.Entry<String, String> entry : input.entrySet()){
+                                row = row.set(entry.getKey(), entry.getValue());
+                            }
+                            return row;
                         }))
-                .apply("Save to Datastore", DatastoreIO.v1().write().withProjectId(options.getProject()));
+                .apply("Save to Datastore", BigQueryIO.writeTableRows().to(tr)
+                        .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED)
+                        .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND));
+
 
         p.run().waitUntilFinish();
     }

@@ -10,10 +10,10 @@ public interface IngestOptions extends DataflowPipelineOptions
     String getDataSourceReference();
     void setDataSourceReference(String reference);
 
-    @Description("Which field use as key, e.g.: 'business_id'")
+    @Description("Output dataset ID")
     @Default.String("id")
-    String getKeyField();
-    void setKeyField(String keyField);
+    String getDatasetId();
+    void setDatasetId(String id);
 
     @Description("Table name to save")
     String getTableName();
