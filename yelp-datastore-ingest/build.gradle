@@ -15,6 +15,7 @@ repositories {
 dependencies {
     compile 'com.google.code.gson:gson:2.8.5'
     compile 'org.apache.beam:beam-runners-google-cloud-dataflow-java:2.11.0'
+    compile 'org.apache.beam:beam-runners-direct-java:2.11.0'
     compile 'org.slf4j:slf4j-simple:1.7.25'
 }
 
