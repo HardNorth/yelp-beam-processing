@@ -40,13 +40,13 @@ public class IngestBusiness
         IngestOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(IngestOptions.class);
 
         Pipeline p = Pipeline.create(options);
-        p.apply(TextIO.read().from(options.getDataSourceReference()))
-                .apply(Filter.by((s) -> s.contains("\"state\":")))
-                .apply(MapElements
+        p.apply("Read input file line-by-line", TextIO.read().from(options.getDataSourceReference()))
+                .apply("Filter lines which do not contain 'state' field", Filter.by((s) -> s.contains("\"state\":")))
+                .apply("Convert to Map<String, String> through JSON DOM", MapElements
                         // uses imports from TypeDescriptors
                         .into(maps(strings(), strings()))
                         .via((s) -> GSON.fromJson(s, RAW_MAP_TYPE)))
-                .apply(MapElements
+                .apply("Wrap as Entity objects for Datastore", MapElements
                         .into(TypeDescriptor.of(Entity.class))
                         .via(input -> {
                             Key keyField = DatastoreHelper.makeKey(input.get(options.getKeyField())).build();
@@ -56,6 +56,6 @@ public class IngestBusiness
 
                             return Entity.newBuilder().setKey(keyField).putAllProperties(result).build();
                         }))
-                .apply(DatastoreIO.v1().write().withProjectId(options.getProject()));
+                .apply("Save to Datastore", DatastoreIO.v1().write().withProjectId(options.getProject()));
     }
 }
