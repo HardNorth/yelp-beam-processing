@@ -69,9 +69,7 @@ public class IngestBusiness
                         .into(of(TableRow.class))
                         .via((Map<String, String> input) -> {
                             TableRow row = new TableRow();
-                            for(Map.Entry<String, String> entry : input.entrySet()){
-                                row = row.set(entry.getKey(), entry.getValue());
-                            }
+                            row.putAll(input);
                             return row;
                         }))
                 .apply("Save to Datastore", BigQueryIO.writeTableRows().to(tr)
