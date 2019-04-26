@@ -2,21 +2,15 @@ package net.hardnorth.yelp.ingest.datastore;
 
 import com.google.api.services.bigquery.model.TableReference;
 import com.google.api.services.bigquery.model.TableRow;
-import com.google.datastore.v1.Entity;
-import com.google.datastore.v1.Key;
-import com.google.datastore.v1.Value;
-import com.google.datastore.v1.client.DatastoreHelper;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
-import org.apache.beam.sdk.io.gcp.datastore.DatastoreIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.Filter;
 import org.apache.beam.sdk.transforms.MapElements;
-import org.apache.beam.sdk.values.TypeDescriptor;
-import org.apache.beam.vendor.grpc.v1p13p1.com.google.gson.Gson;
-import org.apache.beam.vendor.grpc.v1p13p1.com.google.gson.GsonBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,12 +18,11 @@ import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import static org.apache.beam.sdk.values.TypeDescriptor.of;
 import static org.apache.beam.sdk.values.TypeDescriptors.maps;
 import static org.apache.beam.sdk.values.TypeDescriptors.strings;
-import static org.apache.beam.sdk.values.TypeDescriptor.of;
 
 public class IngestBusiness
 {
@@ -55,8 +48,8 @@ public class IngestBusiness
                         .via((s) -> {
                             try
                             {
-                                return ((Map<String, Object>)GSON.fromJson(s, RAW_MAP_TYPE))
-                                        .entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, v->String.valueOf(v.getValue())));
+                                return ((Map<String, Object>) GSON.fromJson(s, RAW_MAP_TYPE))
+                                        .entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, v -> String.valueOf(v.getValue())));
                             }
                             catch (Throwable e)
                             {
@@ -72,7 +65,7 @@ public class IngestBusiness
                             row.putAll(input);
                             return row;
                         }))
-                .apply("Save to Datastore", BigQueryIO.writeTableRows().to(tr)
+                .apply("Save to BigQuery", BigQueryIO.writeTableRows().to(tr)
                         .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED)
                         .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND));
 
