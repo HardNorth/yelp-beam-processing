@@ -7,6 +7,9 @@ import com.google.api.services.bigquery.model.TableSchema;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.reflect.TypeToken;
 import net.hardnorth.yelp.ingest.bigquery.options.IngestOptions;
 import org.apache.beam.sdk.Pipeline;
@@ -19,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Type;
-import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
@@ -60,33 +62,49 @@ public class IngestBusiness
         IngestOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(IngestOptions.class);
         final TableReference tr = new TableReference().setProjectId(options.getProject()).setDatasetId(options.getDatasetId()).setTableId(options.getTableName());
 
-        Pipeline p = Pipeline.create(options);
-        p.apply("Read input file line-by-line", TextIO.read().from(options.getDataSourceReference()))
+        Pipeline pipeline = Pipeline.create(options);
+        pipeline.apply("Read input file line-by-line", TextIO.read().from(options.getDataSourceReference()))
                 .apply("Filter lines which do not contain 'state' field", Filter.by((s) -> s.contains("\"state\":")))
                 .apply("Convert to TableRow objects for BigQuery", MapElements
                         .into(of(TableRow.class))
                         .via((String s) -> {
                             try
                             {
-                                Map<String, Object> parsed = GSON.fromJson(s, RAW_MAP_TYPE);
+                                JsonObject parsed = GSON.fromJson(s, JsonElement.class).getAsJsonObject();
                                 TableRow row = new TableRow();
-                                parsed.forEach((key, value) -> {
-                                    if (value == null
-                                            || value instanceof String
-                                            || value instanceof Double)
+                                parsed.entrySet().forEach(e -> {
+                                    String key = e.getKey();
+                                    JsonElement value = e.getValue();
+                                    if (value == null || value.isJsonNull())
                                     {
-                                        row.put(key, value);
+                                        row.put(key, null);
+                                        return;
                                     }
-                                    else
+                                    if (value.isJsonPrimitive())
                                     {
-                                        row.put(key, String.valueOf(value)
-                                                .replace("{","\\{")
-                                                .replace("}","\\}")
-                                                .replace("\"","\\\"")
-                                        );
+                                        JsonPrimitive primitive = value.getAsJsonPrimitive();
+                                        if (primitive.isBoolean())
+                                        {
+                                            row.put(key, primitive.getAsBoolean());
+                                            return;
+                                        }
+                                        if (primitive.isNumber())
+                                        {
+                                            row.put(key, primitive.getAsDouble());
+                                            return;
+                                        }
+                                        if (primitive.isString())
+                                        {
+                                            row.put(key, primitive.getAsString());
+                                            return;
+                                        }
                                     }
+                                    row.put(key, value.toString()
+                                            .replace("{", "\\{")
+                                            .replace("}", "\\}")
+                                            .replace("\"", "\\\"")
+                                    );
                                 });
-                                row.putAll(parsed);
                                 return row;
                             }
                             catch (Throwable e)
@@ -101,6 +119,6 @@ public class IngestBusiness
                         .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED)
                         .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND));
 
-        p.run().waitUntilFinish();
+        pipeline.run().waitUntilFinish();
     }
 }
