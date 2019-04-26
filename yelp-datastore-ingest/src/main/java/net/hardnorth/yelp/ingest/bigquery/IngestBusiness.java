@@ -22,11 +22,8 @@ import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import static org.apache.beam.sdk.values.TypeDescriptor.of;
-import static org.apache.beam.sdk.values.TypeDescriptors.maps;
-import static org.apache.beam.sdk.values.TypeDescriptors.strings;
 
 public class IngestBusiness
 {
@@ -42,9 +39,9 @@ public class IngestBusiness
                     .add(new TableFieldSchema().setName("hours").setType("STRING").setMode("NULLABLE"))
                     .add(new TableFieldSchema().setName("address").setType("STRING").setMode("REQUIRED"))
                     .add(new TableFieldSchema().setName("city").setType("STRING").setMode("REQUIRED"))
-                    .add(new TableFieldSchema().setName("is_open").setType("INT64").setMode("REQUIRED"))
+                    .add(new TableFieldSchema().setName("is_open").setType("FLOAT64").setMode("REQUIRED"))
                     .add(new TableFieldSchema().setName("latitude").setType("FLOAT64").setMode("REQUIRED"))
-                    .add(new TableFieldSchema().setName("review_count").setType("INT64").setMode("REQUIRED"))
+                    .add(new TableFieldSchema().setName("review_count").setType("FLOAT64").setMode("REQUIRED"))
                     .add(new TableFieldSchema().setName("stars").setType("FLOAT64").setMode("REQUIRED"))
                     .add(new TableFieldSchema().setName("name").setType("STRING").setMode("REQUIRED"))
                     .add(new TableFieldSchema().setName("attributes").setType("STRING").setMode("NULLABLE"))
@@ -65,14 +62,27 @@ public class IngestBusiness
         Pipeline p = Pipeline.create(options);
         p.apply("Read input file line-by-line", TextIO.read().from(options.getDataSourceReference()))
                 .apply("Filter lines which do not contain 'state' field", Filter.by((s) -> s.contains("\"state\":")))
-                .apply("Convert to Map<String, String> through JSON DOM", MapElements
-                        // uses imports from TypeDescriptors
-                        .into(maps(strings(), strings()))
-                        .via((s) -> {
+                .apply("Convert to TableRow objects for BigQuery", MapElements
+                        .into(of(TableRow.class))
+                        .via((String s) -> {
                             try
                             {
-                                return ((Map<String, Object>) GSON.fromJson(s, RAW_MAP_TYPE))
-                                        .entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, v -> String.valueOf(v.getValue())));
+                                Map<String, Object> parsed = GSON.fromJson(s, RAW_MAP_TYPE);
+                                TableRow row = new TableRow();
+                                parsed.forEach((key, value) -> {
+                                    if (value == null
+                                            || value instanceof String
+                                            || value instanceof Double)
+                                    {
+                                        row.put(key, value);
+                                    }
+                                    else
+                                    {
+                                        row.put(key, String.valueOf(value));
+                                    }
+                                });
+                                row.putAll(parsed);
+                                return row;
                             }
                             catch (Throwable e)
                             {
@@ -80,14 +90,7 @@ public class IngestBusiness
                                 return null;
                             }
                         }))
-                .apply("Filter nulls", Filter.by(Objects::nonNull))
-                .apply("Wrap as TableRow objects for BigQuery", MapElements
-                        .into(of(TableRow.class))
-                        .via((Map<String, String> input) -> {
-                            TableRow row = new TableRow();
-                            row.putAll(input);
-                            return row;
-                        }))
+                .apply("Throw away null rows", Filter.by(Objects::nonNull))
                 .apply("Save to BigQuery", BigQueryIO.writeTableRows().to(tr)
                         .withSchema(SCHEMA)
                         .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED)
