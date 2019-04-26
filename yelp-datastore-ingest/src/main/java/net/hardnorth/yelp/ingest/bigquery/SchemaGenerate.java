@@ -20,7 +20,7 @@ import java.util.Set;
 
 public class SchemaGenerate
 {
-    private static final String INPUT = "d:\\1\\yelp\\business.json";
+    private static final String INPUT = "d:\\1\\yelp\\review.json";
     private static final Gson GSON = new GsonBuilder().serializeNulls().create();
 
     public static void main(String[] args) throws IOException
