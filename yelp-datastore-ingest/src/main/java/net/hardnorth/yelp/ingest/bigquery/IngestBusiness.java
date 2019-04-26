@@ -6,9 +6,7 @@ import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.gson.JsonObject;
-import net.hardnorth.yelp.ingest.bigquery.conversions.JsonObjectToTableRow;
-import net.hardnorth.yelp.ingest.bigquery.conversions.StringToJsonObjectFunction;
+import net.hardnorth.yelp.ingest.bigquery.conversions.JsonTableRowFunction;
 import net.hardnorth.yelp.ingest.bigquery.options.IngestOptions;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.TextIO;
@@ -64,16 +62,13 @@ public class IngestBusiness
 
         Pipeline pipeline = Pipeline.create(options);
         pipeline.apply("Read input file line-by-line", TextIO.read().from(options.getDataSourceReference()))
-                .apply("Convert to JsonObject to test JSON integrity", MapElements
-                        .into(of(JsonObject.class))
-                        .via(new StringToJsonObjectFunction()))
+                .apply("Convert JSONs to one step depth TableRow objects for BigQuery", MapElements
+                        .into(of(TableRow.class))
+                        .via(new JsonTableRowFunction()))
                 .apply("Throw away null rows", Filter.by(Objects::nonNull))
                 .apply("Throw away non US businesses by state",
-                        Filter.by((e) -> STATE_LIST.contains(e.getAsJsonPrimitive("state").getAsString()
+                        Filter.by((e) -> STATE_LIST.contains(e.get("state").toString()
                                 .toUpperCase(Locale.US))))
-                .apply("Convert JsonObject to one step depth TableRow objects for BigQuery", MapElements
-                        .into(of(TableRow.class))
-                        .via(new JsonObjectToTableRow()))
                 .apply("Save to BigQuery", BigQueryIO.writeTableRows().to(tr)
                         .withSchema(SCHEMA)
                         .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED)

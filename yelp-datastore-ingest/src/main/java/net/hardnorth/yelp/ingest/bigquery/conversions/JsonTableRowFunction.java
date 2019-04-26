@@ -1,21 +1,35 @@
 package net.hardnorth.yelp.ingest.bigquery.conversions;
 
 import com.google.api.services.bigquery.model.TableRow;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import com.google.gson.*;
 import org.apache.beam.sdk.transforms.SerializableFunction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class JsonObjectToTableRow implements SerializableFunction<JsonObject, TableRow>
+public class JsonTableRowFunction implements SerializableFunction<String, TableRow>
 {
+    private static final Logger LOGGER = LoggerFactory.getLogger(JsonTableRowFunction.class);
+    private static final Gson GSON = new GsonBuilder().serializeNulls().create();
+
     @Override
-    public TableRow apply(JsonObject input)
+    public TableRow apply(String input)
     {
+        JsonObject object;
+        try
+        {
+            object = GSON.fromJson(input, JsonElement.class).getAsJsonObject();
+        }
+        catch (Throwable e)
+        {
+            LOGGER.warn("Unable to deserialize Json: " + input, e);
+            return null;
+        }
+
         Map<String, Object> row = new HashMap<>();
-        input.entrySet().forEach(e -> {
+        object.entrySet().forEach(e -> {
             String key = e.getKey();
             JsonElement value = e.getValue();
             if (value == null || value.isJsonNull())
