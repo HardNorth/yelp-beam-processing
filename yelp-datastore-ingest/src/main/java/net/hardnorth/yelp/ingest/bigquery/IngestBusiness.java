@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Type;
+import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
@@ -78,7 +79,11 @@ public class IngestBusiness
                                     }
                                     else
                                     {
-                                        row.put(key, String.valueOf(value));
+                                        row.put(key, String.valueOf(value)
+                                                .replace("{","\\{")
+                                                .replace("}","\\}")
+                                                .replace("\"","\\\"")
+                                        );
                                     }
                                 });
                                 row.putAll(parsed);
