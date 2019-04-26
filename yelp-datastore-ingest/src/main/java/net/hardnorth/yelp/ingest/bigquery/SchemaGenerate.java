@@ -5,14 +5,12 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import com.google.gson.reflect.TypeToken;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,7 +25,7 @@ public class SchemaGenerate
     {
         Map<String, Pair<String, String>> schema = new HashMap<>();
 
-        try(BufferedReader reader = new BufferedReader(new FileReader(INPUT)))
+        try (BufferedReader reader = new BufferedReader(new FileReader(INPUT)))
         {
             String line;
             while ((line = reader.readLine()) != null)
@@ -88,7 +86,7 @@ public class SchemaGenerate
         }
 
         String type = getType(column.getValue());
-        if(type == null)
+        if (type == null)
         {
             return null;
         }
@@ -106,11 +104,11 @@ public class SchemaGenerate
         if (e.isJsonPrimitive())
         {
             JsonPrimitive p = e.getAsJsonPrimitive();
-            if(p.isBoolean())
+            if (p.isBoolean())
             {
                 return "BOOL";
             }
-            if(p.isNumber())
+            if (p.isNumber())
             {
                 return "FLOAT64";
             }
