@@ -1,6 +1,10 @@
 package net.hardnorth.yelp.ingest.bigquery;
 
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -102,7 +106,31 @@ public class SchemaGenerate
         }
         if (p.isNumber())
         {
-            return "NUMERIC";
+            String numStr = p.getAsString();
+            if (numStr.contains("."))
+            {
+                try
+                {
+                    Double.valueOf(numStr);
+                    return "FLOAT64";
+                }
+                catch (Exception exc)
+                {
+                    return "STRING";
+                }
+            }
+            else
+            {
+                try
+                {
+                    Long.valueOf(numStr);
+                    return "INT64";
+                }
+                catch (Exception exc)
+                {
+                    return "STRING";
+                }
+            }
         }
         return "STRING";
     }
