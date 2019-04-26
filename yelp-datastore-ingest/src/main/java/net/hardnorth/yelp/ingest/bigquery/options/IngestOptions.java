@@ -1,4 +1,4 @@
-package net.hardnorth.yelp.ingest.datastore;
+package net.hardnorth.yelp.ingest.bigquery.options;
 
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
 import org.apache.beam.sdk.options.Default;

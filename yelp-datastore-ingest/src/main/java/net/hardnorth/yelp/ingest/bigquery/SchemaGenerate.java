@@ -1,8 +1,8 @@
-package net.hardnorth.yelp.ingest.datastore;
+package net.hardnorth.yelp.ingest.bigquery;
 
 import com.google.gson.*;
-import org.apache.commons.lang3.tuple.ImmutableTriple;
-import org.apache.commons.lang3.tuple.Triple;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -19,7 +19,7 @@ public class SchemaGenerate
 
     public static void main(String[] args) throws IOException
     {
-        Map<String, Triple<String, String, String>> schema = new HashMap<>();
+        Map<String, Pair<String, String>> schema = new HashMap<>();
 
         BufferedReader reader = new BufferedReader(new FileReader(INPUT));
         String line;
@@ -33,22 +33,22 @@ public class SchemaGenerate
                 Set<String> nullableKeys = new HashSet<>(schemaKeys);
                 nullableKeys.removeAll(rowKeys);
                 nullableKeys.forEach(k -> {
-                    Triple<String, String, String> oldSchema = schema.get(k);
-                    Triple<String, String, String> newSchema = ImmutableTriple.of(oldSchema.getLeft(), oldSchema.getMiddle(), "NULLABLE");
+                    Pair<String, String> oldSchema = schema.get(k);
+                    Pair<String, String> newSchema = ImmutablePair.of(oldSchema.getLeft(), "NULLABLE");
                     schema.put(k, newSchema);
                 });
             }
 
             row.entrySet().forEach(c -> {
-                Triple<String, String, String> potentialSchema = getColumnSchema(c);
+                Pair<String, String> potentialSchema = getColumnSchema(c);
                 if (potentialSchema != null)
                 {
                     if (schema.containsKey(c.getKey()))
                     {
-                        Triple<String, String, String> actualSchema = schema.get(c.getKey());
-                        if (!actualSchema.getMiddle().equals(potentialSchema.getMiddle()))
+                        Pair<String, String> actualSchema = schema.get(c.getKey());
+                        if (!actualSchema.getLeft().equals(potentialSchema.getLeft()))
                         {
-                            Triple<String, String, String> newSchema = ImmutableTriple.of(actualSchema.getLeft(), "STRING", actualSchema.getRight());
+                            Pair<String, String> newSchema = ImmutablePair.of("STRING", actualSchema.getRight());
                             schema.put(c.getKey(), newSchema);
                         }
                     }
@@ -62,8 +62,8 @@ public class SchemaGenerate
                 {
                     if (schema.containsKey(c.getKey()))
                     {
-                        Triple<String, String, String> actualSchema = schema.get(c.getKey());
-                        Triple<String, String, String> newSchema = ImmutableTriple.of(actualSchema.getLeft(), actualSchema.getMiddle(), "NULLABLE");
+                        Pair<String, String> actualSchema = schema.get(c.getKey());
+                        Pair<String, String> newSchema = ImmutablePair.of(actualSchema.getLeft(), "NULLABLE");
                         schema.put(c.getKey(), newSchema);
                     }
                 }
@@ -73,17 +73,16 @@ public class SchemaGenerate
         System.out.print(schema.toString());
     }
 
-    private static Triple<String, String, String> getColumnSchema(Map.Entry<String, JsonElement> column)
+    private static Pair<String, String> getColumnSchema(Map.Entry<String, JsonElement> column)
     {
         if (column.getValue() == null || column.getValue().isJsonNull())
         {
             return null;
         }
 
-        String name = column.getKey();
         String type = getType(column.getValue());
         String mode = "REQUIRED";
-        return ImmutableTriple.of(name, type, mode);
+        return ImmutablePair.of(type, mode);
     }
 
     private static String getType(JsonElement e)
