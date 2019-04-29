@@ -1,30 +1,24 @@
 package net.hardnorth.yelp.ingest.bigquery.conversions;
 
 import com.google.api.services.bigquery.model.TableRow;
-import com.google.gson.*;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import org.apache.beam.sdk.transforms.SerializableFunction;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static net.hardnorth.yelp.ingest.common.JsonUtil.*;
+
 public class JsonTableRowFunction implements SerializableFunction<String, TableRow>
 {
-    private static final Logger LOGGER = LoggerFactory.getLogger(JsonTableRowFunction.class);
-    private static final Gson GSON = new GsonBuilder().serializeNulls().create();
-
     @Override
     public TableRow apply(String input)
     {
-        JsonObject object;
-        try
+        JsonObject object = getJsonObject(getJson(input));
+        if (object == null)
         {
-            object = GSON.fromJson(input, JsonElement.class).getAsJsonObject();
-        }
-        catch (Throwable e)
-        {
-            LOGGER.warn("Unable to deserialize Json: " + input, e);
             return null;
         }
 
@@ -56,11 +50,7 @@ public class JsonTableRowFunction implements SerializableFunction<String, TableR
                     return;
                 }
             }
-            row.put(key, value.toString()
-                    .replace("{", "\\{")
-                    .replace("}", "\\}")
-                    .replace("\"", "\\\"")
-            );
+            row.put(key, escapeJson(value));
         });
         TableRow result = new TableRow();
         result.putAll(row);

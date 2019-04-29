@@ -1,7 +1,6 @@
-package net.hardnorth.yelp.ingest.bigquery.options;
+package net.hardnorth.yelp.ingest.csv.options;
 
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
-import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 
 public interface IngestOptions extends DataflowPipelineOptions
@@ -11,14 +10,8 @@ public interface IngestOptions extends DataflowPipelineOptions
 
     void setDataSourceReference(String reference);
 
-    @Description("Output dataset ID")
-    @Default.String("id")
-    String getDatasetId();
+    @Description("A reference on Data Output as URI, e.g.: gs://yelp-dataset/business-processed.csv")
+    String getDataOutputReference();
 
-    void setDatasetId(String id);
-
-    @Description("Table name to save")
-    String getTableName();
-
-    void setTableName(String table);
+    void setDataOutputReference(String id);
 }
