@@ -7,9 +7,9 @@ import com.google.gson.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JsonUtil
+public class CommonUtil
 {
-    private static final Logger LOGGER = LoggerFactory.getLogger(JsonUtil.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CommonUtil.class);
     private static final Gson GSON = new GsonBuilder().serializeNulls().create();
 
     public static JsonElement getJson(String from)
@@ -59,5 +59,10 @@ public class JsonUtil
                 .replace("[", "\\[")
                 .replace("]", "\\]")
                 .replace("/", "\\/");
+    }
+
+    public static String getLocation(String path, String fileName)
+    {
+        return path.endsWith("/") ? path + fileName : path + "/" + fileName;
     }
 }

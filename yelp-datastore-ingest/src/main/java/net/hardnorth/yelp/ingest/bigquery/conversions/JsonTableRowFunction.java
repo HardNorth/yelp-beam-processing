@@ -9,7 +9,7 @@ import org.apache.beam.sdk.transforms.SerializableFunction;
 import java.util.HashMap;
 import java.util.Map;
 
-import static net.hardnorth.yelp.ingest.common.JsonUtil.*;
+import static net.hardnorth.yelp.ingest.common.CommonUtil.*;
 
 public class JsonTableRowFunction implements SerializableFunction<String, TableRow>
 {

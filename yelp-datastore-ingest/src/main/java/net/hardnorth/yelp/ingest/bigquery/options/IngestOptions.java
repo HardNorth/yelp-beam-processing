@@ -21,4 +21,10 @@ public interface IngestOptions extends DataflowPipelineOptions
     String getTableName();
 
     void setTableName(String table);
+
+    @Description("Wait until job execution with log output")
+    @Default.Boolean(false)
+    void setSyncExecution(Boolean sync);
+
+    Boolean getSyncExecution();
 }

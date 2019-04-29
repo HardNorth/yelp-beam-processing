@@ -9,16 +9,18 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-import static net.hardnorth.yelp.ingest.common.JsonUtil.*;
+import static net.hardnorth.yelp.ingest.common.CommonUtil.*;
 
 public class JsonCsvStringFunction implements SerializableFunction<String, String>
 {
     private final Map<String, Integer> schema;
 
-    public JsonCsvStringFunction(Map<String, Integer> csvSchema)
+    public JsonCsvStringFunction(List<String> csvSchema)
     {
-        this.schema = csvSchema;
+        this.schema = IntStream.range(0, csvSchema.size()).boxed().collect(Collectors.toMap(csvSchema::get, v -> v));
     }
 
 

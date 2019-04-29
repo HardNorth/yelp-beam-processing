@@ -1,6 +1,7 @@
 package net.hardnorth.yelp.ingest.csv.options;
 
 import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
+import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 
 public interface IngestOptions extends DataflowPipelineOptions
@@ -14,4 +15,10 @@ public interface IngestOptions extends DataflowPipelineOptions
     String getDataOutputReference();
 
     void setDataOutputReference(String id);
+
+    @Description("Wait until job execution with log output")
+    @Default.Boolean(false)
+    void setSyncExecution(Boolean sync);
+
+    Boolean getSyncExecution();
 }

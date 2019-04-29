@@ -7,9 +7,9 @@ import com.google.api.services.bigquery.model.TableSchema;
 import com.google.common.collect.ImmutableList;
 import net.hardnorth.yelp.ingest.bigquery.conversions.JsonTableRowFunction;
 import net.hardnorth.yelp.ingest.bigquery.options.IngestOptions;
-import net.hardnorth.yelp.ingest.common.USStateFilter;
+import net.hardnorth.yelp.ingest.common.BusinessCommon;
 import org.apache.beam.sdk.Pipeline;
-import org.apache.beam.sdk.io.TextIO;
+import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.Filter;
@@ -52,19 +52,21 @@ public class IngestBusiness
         final TableReference tr = new TableReference().setProjectId(options.getProject()).setDatasetId(options.getDatasetId()).setTableId(options.getTableName());
 
         Pipeline pipeline = Pipeline.create(options);
-        pipeline.apply("Read input file line-by-line", TextIO.read().from(options.getDataSourceReference()))
-                .apply("Throw away non US businesses by state", Filter.by(new USStateFilter()))
-                .apply("Throw away null rows", Filter.by(Objects::nonNull))
+
+        BusinessCommon.getUsBusiness(pipeline, options.getDataSourceReference(), options.getTempLocation())
                 .apply("Convert JSONs to one step depth TableRow objects for BigQuery", MapElements
                         .into(of(TableRow.class))
                         .via(new JsonTableRowFunction()))
-                // Second call to Objects::nonNull somehow causes ClassCastException, so lambda is used
-                .apply("Throw away null rows", Filter.by((TableRow e)-> null != e))
+                .apply("Throw away null rows", Filter.by(Objects::nonNull))
                 .apply("Save to BigQuery", BigQueryIO.writeTableRows().to(tr)
                         .withSchema(SCHEMA)
                         .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED)
                         .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND));
 
-        pipeline.run().waitUntilFinish();
+        PipelineResult started = pipeline.run();
+        if (options.getSyncExecution())
+        {
+            started.waitUntilFinish();
+        }
     }
 }
