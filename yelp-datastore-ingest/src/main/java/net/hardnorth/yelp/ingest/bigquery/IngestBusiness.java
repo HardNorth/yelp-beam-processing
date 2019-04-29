@@ -58,7 +58,7 @@ public class IngestBusiness
                 .apply("Convert JSONs to one step depth TableRow objects for BigQuery", MapElements
                         .into(of(TableRow.class))
                         .via(new JsonTableRowFunction()))
-                .apply("Throw away null rows", Filter.by(Objects::nonNull))
+                .apply("Throw away null rows", Filter.by((e)-> null != e))
                 .apply("Save to BigQuery", BigQueryIO.writeTableRows().to(tr)
                         .withSchema(SCHEMA)
                         .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED)
