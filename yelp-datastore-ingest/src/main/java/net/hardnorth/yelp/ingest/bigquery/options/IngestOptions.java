@@ -24,7 +24,7 @@ public interface IngestOptions extends DataflowPipelineOptions
 
     @Description("Wait until job execution with log output")
     @Default.Boolean(false)
-    void setSyncExecution(Boolean sync);
-
     Boolean getSyncExecution();
+
+    void setSyncExecution(Boolean sync);
 }
