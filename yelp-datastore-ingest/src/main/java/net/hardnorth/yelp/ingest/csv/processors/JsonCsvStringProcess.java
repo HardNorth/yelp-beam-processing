@@ -60,6 +60,6 @@ public class JsonCsvStringProcess extends DoFn<String, String>
                     }
                 })
                 .collect(Collectors.toList());
-        c.output(StringUtils.join(result.iterator(), ','));
+        c.output(StringUtils.join(result, ','));
     }
 }
