@@ -1,9 +1,10 @@
-package net.hardnorth.yelp.ingest.csv.conversions;
+package net.hardnorth.yelp.ingest.csv.processors;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import org.apache.beam.sdk.transforms.SerializableFunction;
+import org.apache.beam.sdk.transforms.DoFn;
+import org.apache.beam.sdk.values.TupleTag;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
@@ -14,23 +15,31 @@ import java.util.stream.IntStream;
 
 import static net.hardnorth.yelp.ingest.common.CommonUtil.*;
 
-public class JsonCsvStringFunction implements SerializableFunction<String, String>
+public class JsonCsvStringProcess extends DoFn<String, String>
 {
+    public static final TupleTag<String> CONVERTED = new TupleTag<String>()
+    {
+    };
+    public static final TupleTag<String> INVALID_JSON = new TupleTag<String>()
+    {
+    };
+
     private final Map<String, Integer> schema;
 
-    public JsonCsvStringFunction(List<String> csvSchema)
+    public JsonCsvStringProcess(final List<String> csvSchema)
     {
         this.schema = IntStream.range(0, csvSchema.size()).boxed().collect(Collectors.toMap(csvSchema::get, v -> v));
     }
 
 
-    @Override
-    public String apply(String input)
+    @ProcessElement
+    public void processElement(ProcessContext c)
     {
-        JsonObject object = getJsonObject(getJson(input));
+        JsonObject object = getJsonObject(getJson(c.element()));
         if (object == null)
         {
-            return null;
+            c.output(INVALID_JSON, c.element());
+            return;
         }
         List<String> row = new ArrayList<>(schema.size());
         object.entrySet().forEach(e -> {
@@ -51,6 +60,6 @@ public class JsonCsvStringFunction implements SerializableFunction<String, Strin
             }
         });
 
-        return StringUtils.join(row.iterator(), ',');
+        c.output(StringUtils.join(row.iterator(), ','));
     }
 }
