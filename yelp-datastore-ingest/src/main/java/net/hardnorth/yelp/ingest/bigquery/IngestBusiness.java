@@ -58,6 +58,7 @@ public class IngestBusiness
                 .apply("Convert JSONs to one step depth TableRow objects for BigQuery", MapElements
                         .into(of(TableRow.class))
                         .via(new JsonTableRowFunction()))
+                // Second call to Objects::nonNull somehow causes ClassCastException, so lambda is used
                 .apply("Throw away null rows", Filter.by((TableRow e)-> null != e))
                 .apply("Save to BigQuery", BigQueryIO.writeTableRows().to(tr)
                         .withSchema(SCHEMA)
