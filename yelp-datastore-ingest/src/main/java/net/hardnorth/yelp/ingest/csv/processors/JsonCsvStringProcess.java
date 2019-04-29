@@ -8,6 +8,7 @@ import org.apache.beam.sdk.values.TupleTag;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -41,25 +42,24 @@ public class JsonCsvStringProcess extends DoFn<String, String>
             c.output(INVALID_JSON, c.element());
             return;
         }
-        List<String> row = new ArrayList<>(schema.size());
-        object.entrySet().forEach(e -> {
-            String key = e.getKey();
-            JsonElement value = e.getValue();
-            if (value == null || value.isJsonNull())
-            {
-                return;
-            }
-            if (value.isJsonPrimitive())
-            {
-                JsonPrimitive primitive = value.getAsJsonPrimitive();
-                row.add(schema.get(key), primitive.getAsString());
-            }
-            else
-            {
-                row.add(schema.get(key), escapeJson(value));
-            }
-        });
-
-        c.output(StringUtils.join(row.iterator(), ','));
+        List<String> result = object.entrySet().stream()
+                .sorted(Comparator.comparing(e -> schema.get(e.getKey())))
+                .map(Map.Entry::getValue)
+                .map(v -> {
+                    if (v == null || v.isJsonNull())
+                    {
+                        return null;
+                    }
+                    if (v.isJsonPrimitive())
+                    {
+                        return v.getAsJsonPrimitive().getAsString();
+                    }
+                    else
+                    {
+                        return escapeJson(v);
+                    }
+                })
+                .collect(Collectors.toList());
+        c.output(StringUtils.join(result.iterator(), ','));
     }
 }
