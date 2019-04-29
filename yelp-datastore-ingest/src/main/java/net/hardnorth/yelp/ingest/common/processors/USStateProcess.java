@@ -11,9 +11,15 @@ import java.util.regex.Pattern;
 
 public class USStateProcess extends DoFn<String, String>
 {
-    public static final TupleTag<String> US = new TupleTag<>("US");
-    public static final TupleTag<String> NON_US = new TupleTag<>("NON-US");
-    public static final TupleTag<String> CANNOT_DETERMINE = new TupleTag<>("NA");
+    public static final TupleTag<String> US = new TupleTag<String>()
+    {
+    };
+    public static final TupleTag<String> NON_US = new TupleTag<String>()
+    {
+    };
+    public static final TupleTag<String> CANNOT_DETERMINE = new TupleTag<String>()
+    {
+    };
 
     private static final Pattern STATE_EXTRACT_PATTERN = Pattern.compile("\"state\"\\s*:\\s*\"([\\w]+)\"");
 
