@@ -12,13 +12,11 @@ import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.apache.beam.sdk.transforms.Filter;
 import org.apache.beam.sdk.transforms.MapElements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.Objects;
 
 import static org.apache.beam.sdk.values.TypeDescriptor.of;
 
@@ -44,6 +42,7 @@ public class IngestBusiness
                     .add(new TableFieldSchema().setName("attributes").setType("STRING").setMode("NULLABLE"))
                     .build()
     );
+    private static final JsonTableRowFunction JSON_TO_TABLE_ROW_CONVERSION_FUNCTION = new JsonTableRowFunction();
 
     public static void main(String[] args)
     {
@@ -56,8 +55,7 @@ public class IngestBusiness
         BusinessCommon.getUsBusiness(pipeline, options.getDataSourceReference(), options.getTempLocation())
                 .apply("Convert JSONs to one step depth TableRow objects for BigQuery", MapElements
                         .into(of(TableRow.class))
-                        .via(new JsonTableRowFunction()))
-                .apply("Throw away null rows", Filter.by(Objects::nonNull))
+                        .via(JSON_TO_TABLE_ROW_CONVERSION_FUNCTION))
                 .apply("Save to BigQuery", BigQueryIO.writeTableRows().to(tr)
                         .withSchema(SCHEMA)
                         .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED)
