@@ -4,7 +4,7 @@ import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 
-public interface IngestOptions extends DataflowPipelineOptions
+public interface CommonIngestOptions extends DataflowPipelineOptions
 {
     @Description("A reference on Data Source as URI, e.g.: gs://yelp-dataset/business.json")
     String getDataSourceReference();

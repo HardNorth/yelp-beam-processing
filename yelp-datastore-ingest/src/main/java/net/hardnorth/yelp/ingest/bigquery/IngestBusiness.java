@@ -6,7 +6,7 @@ import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
 import com.google.common.collect.ImmutableList;
 import net.hardnorth.yelp.ingest.bigquery.conversions.JsonTableRowFunction;
-import net.hardnorth.yelp.ingest.bigquery.options.IngestOptions;
+import net.hardnorth.yelp.ingest.bigquery.options.CommonIngestOptions;
 import net.hardnorth.yelp.ingest.common.BusinessCommon;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
@@ -47,8 +47,9 @@ public class IngestBusiness
     public static void main(String[] args)
     {
         LOGGER.info("Running with parameters:" + Arrays.asList(args).toString());
-        IngestOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(IngestOptions.class);
-        final TableReference tr = new TableReference().setProjectId(options.getProject()).setDatasetId(options.getDatasetId()).setTableId(options.getTableName());
+        CommonIngestOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(CommonIngestOptions.class);
+        final TableReference tr = new TableReference().setProjectId(options.getProject())
+                .setDatasetId(options.getDatasetId()).setTableId(options.getTableName());
 
         Pipeline pipeline = Pipeline.create(options);
 
