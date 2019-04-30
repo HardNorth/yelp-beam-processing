@@ -45,7 +45,6 @@ public class IngestCommon
         // Read all business IDs into a Singleton View and create sorting function
         PCollectionView<String> sortIds = pipeline
                 .apply("Read business IDs file", TextIO.read().from(options.getSelectedIdFile()))
-                .apply("Remove duplicate IDs", Distinct.create())
                 .apply(Combine.globally((SerializableFunction<Iterable<String>, String>) elements -> StringUtils.join(elements, ',')).asSingletonView());
         SortByKeyContains sortIdProcessor = new SortByKeyContains(sortIds);
 
