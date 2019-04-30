@@ -15,7 +15,7 @@ import static net.hardnorth.yelp.ingest.common.processors.JsonObjectProcessor.IN
 import static net.hardnorth.yelp.ingest.common.processors.JsonObjectProcessor.VALID_JSON_OBJECT;
 import static net.hardnorth.yelp.ingest.common.processors.USStateProcess.*;
 
-public class BusinessCommon
+public class IngestBusinessCommon
 {
     private static final String TEMP_NON_US_FILE_NAME = "non-us_business.json";
     private static final String TEMP_NON_DETERMINED_FILE_NAME = "cannot-determine_business.json";

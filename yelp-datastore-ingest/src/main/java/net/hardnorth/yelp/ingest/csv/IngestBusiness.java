@@ -1,7 +1,7 @@
 package net.hardnorth.yelp.ingest.csv;
 
 import com.google.common.collect.ImmutableList;
-import net.hardnorth.yelp.ingest.common.BusinessCommon;
+import net.hardnorth.yelp.ingest.common.IngestBusinessCommon;
 import net.hardnorth.yelp.ingest.csv.options.IngestOptions;
 import net.hardnorth.yelp.ingest.csv.processors.JsonCsvStringProcess;
 import org.apache.beam.sdk.Pipeline;
@@ -35,7 +35,7 @@ public class IngestBusiness
         IngestOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(IngestOptions.class);
 
         Pipeline pipeline = Pipeline.create(options);
-        BusinessCommon.getUsBusiness(pipeline, options.getDataSourceReference(), options.getTempLocation())
+        IngestBusinessCommon.getUsBusiness(pipeline, options.getDataSourceReference(), options.getTempLocation())
                 .apply("Convert JSONs to CSV row", MapElements.into(strings())
                         .via(JSON_TO_CSV_CONVERSION_FUNCTION))
                 .apply("Save to CSV", TextIO.write().to(options.getDataOutputReference()).withHeader(CSV_HEADER));

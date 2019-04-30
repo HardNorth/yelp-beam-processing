@@ -1,13 +1,12 @@
 package net.hardnorth.yelp.ingest.bigquery;
 
 import com.google.api.services.bigquery.model.TableFieldSchema;
-import com.google.api.services.bigquery.model.TableReference;
 import com.google.api.services.bigquery.model.TableRow;
 import com.google.api.services.bigquery.model.TableSchema;
 import com.google.common.collect.ImmutableList;
 import net.hardnorth.yelp.ingest.bigquery.conversions.JsonTableRowFunction;
 import net.hardnorth.yelp.ingest.bigquery.options.CommonIngestOptions;
-import net.hardnorth.yelp.ingest.common.BusinessCommon;
+import net.hardnorth.yelp.ingest.common.IngestBusinessCommon;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
@@ -48,16 +47,14 @@ public class IngestBusiness
     {
         LOGGER.info("Running with parameters:" + Arrays.asList(args).toString());
         CommonIngestOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(CommonIngestOptions.class);
-        final TableReference tr = new TableReference().setProjectId(options.getProject())
-                .setDatasetId(options.getDatasetId()).setTableId(options.getTableName());
 
         Pipeline pipeline = Pipeline.create(options);
 
-        BusinessCommon.getUsBusiness(pipeline, options.getDataSourceReference(), options.getTempLocation())
+        IngestBusinessCommon.getUsBusiness(pipeline, options.getDataSourceReference(), options.getTempLocation())
                 .apply("Convert JSONs to one step depth TableRow objects for BigQuery", MapElements
                         .into(of(TableRow.class))
                         .via(JSON_TO_TABLE_ROW_CONVERSION_FUNCTION))
-                .apply("Save to BigQuery", BigQueryIO.writeTableRows().to(tr)
+                .apply("Save to BigQuery", BigQueryIO.writeTableRows().to(IngestCommon.getTableReference(options))
                         .withSchema(SCHEMA)
                         .withCreateDisposition(BigQueryIO.Write.CreateDisposition.CREATE_IF_NEEDED)
                         .withWriteDisposition(BigQueryIO.Write.WriteDisposition.WRITE_APPEND));
