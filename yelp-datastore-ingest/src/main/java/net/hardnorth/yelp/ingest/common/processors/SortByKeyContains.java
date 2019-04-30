@@ -16,7 +16,7 @@ public class SortByKeyContains extends DoFn<KV<String, String>, KV<String, Strin
     {
     };
 
-    final PCollectionView<String> view;
+    private final PCollectionView<String> view;
 
     public SortByKeyContains(PCollectionView<String> sideView)
     {

@@ -7,15 +7,19 @@ import net.hardnorth.yelp.ingest.bigquery.conversions.JsonTableRowFunction;
 import net.hardnorth.yelp.ingest.bigquery.options.CommonIngestOptions;
 import net.hardnorth.yelp.ingest.bigquery.options.IdFilteringIngestOptions;
 import net.hardnorth.yelp.ingest.common.CommonUtil;
+import net.hardnorth.yelp.ingest.common.conversions.CombineStrings;
 import net.hardnorth.yelp.ingest.common.conversions.IdKvFunction;
+import net.hardnorth.yelp.ingest.common.conversions.ReadFileFully;
 import net.hardnorth.yelp.ingest.common.processors.JsonObjectProcessor;
 import net.hardnorth.yelp.ingest.common.processors.SortByKeyContains;
-import org.apache.beam.repackaged.beam_sdks_java_core.org.apache.commons.lang3.StringUtils;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.PipelineResult;
+import org.apache.beam.sdk.io.FileIO;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
-import org.apache.beam.sdk.transforms.*;
+import org.apache.beam.sdk.transforms.Combine;
+import org.apache.beam.sdk.transforms.MapElements;
+import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.values.*;
 
 import static net.hardnorth.yelp.ingest.common.processors.JsonObjectProcessor.INVALID_JSON_OBJECT;
@@ -30,6 +34,8 @@ public class IngestCommon
 {
     private static final JsonObjectProcessor JSON_OBJECT_PROCESSOR = new JsonObjectProcessor();
     private static final JsonTableRowFunction JSON_TO_TABLE_ROW_CONVERSION_FUNCTION = new JsonTableRowFunction();
+    private static final ReadFileFully FILE_READER = new ReadFileFully();
+    private static final CombineStrings STRING_COMBINER = new CombineStrings();
 
     public static TableReference getTableReference(CommonIngestOptions options)
     {
@@ -41,11 +47,12 @@ public class IngestCommon
             (Pipeline pipeline, IdFilteringIngestOptions options, IdKvFunction sortFunction,
              String rejectedDataFileName, String invalidJsonsFileName, TableSchema schema)
     {
-
         // Read all business IDs into a Singleton View and create sorting function
         PCollectionView<String> sortIds = pipeline
-                .apply("Read business IDs file", TextIO.read().from(options.getSelectedIdFile()))
-                .apply(Combine.globally((SerializableFunction<Iterable<String>, String>) elements -> StringUtils.join(elements, ',')).asSingletonView());
+                .apply("Get ID files", FileIO.match().filepattern(options.getSelectedIdFile()))
+                .apply("Read ID file descriptors", FileIO.readMatches())
+                .apply("Read ID file content", MapElements.into(strings()).via(FILE_READER))
+                .apply("Combine ID file content", Combine.globally(STRING_COMBINER).asSingletonView());
         SortByKeyContains sortIdProcessor = new SortByKeyContains(sortIds);
 
         // Read all reviews into a collection and extract business_ids from them as keys
