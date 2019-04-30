@@ -1,5 +1,6 @@
 package net.hardnorth.yelp.ingest.common.processors;
 
+import net.hardnorth.yelp.ingest.common.entity.StringSetFilter;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollectionView;
@@ -16,9 +17,9 @@ public class SortByKeyContains extends DoFn<KV<String, String>, KV<String, Strin
     {
     };
 
-    private final PCollectionView<String> view;
+    private final PCollectionView<StringSetFilter> view;
 
-    public SortByKeyContains(PCollectionView<String> sideView)
+    public SortByKeyContains(PCollectionView<StringSetFilter> sideView)
     {
         view = sideView;
     }
@@ -26,7 +27,7 @@ public class SortByKeyContains extends DoFn<KV<String, String>, KV<String, Strin
     @ProcessElement
     public void processElement(ProcessContext c)
     {
-        String keyIds = c.sideInput(view);
+        StringSetFilter keyIds = c.sideInput(view);
         KV<String, String> element = c.element();
         String key = Objects.requireNonNull(element.getKey());
         if (keyIds.contains(key))

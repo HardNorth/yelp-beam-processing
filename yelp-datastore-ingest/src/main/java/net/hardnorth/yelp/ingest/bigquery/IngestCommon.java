@@ -7,9 +7,10 @@ import net.hardnorth.yelp.ingest.bigquery.conversions.JsonTableRowFunction;
 import net.hardnorth.yelp.ingest.bigquery.options.CommonIngestOptions;
 import net.hardnorth.yelp.ingest.bigquery.options.IdFilteringIngestOptions;
 import net.hardnorth.yelp.ingest.common.CommonUtil;
-import net.hardnorth.yelp.ingest.common.conversions.CombineStrings;
+import net.hardnorth.yelp.ingest.common.conversions.FileToStringSetFilter;
 import net.hardnorth.yelp.ingest.common.conversions.IdKvFunction;
-import net.hardnorth.yelp.ingest.common.conversions.ReadFileFully;
+import net.hardnorth.yelp.ingest.common.conversions.StringSetFilterCombiner;
+import net.hardnorth.yelp.ingest.common.entity.StringSetFilter;
 import net.hardnorth.yelp.ingest.common.processors.JsonObjectProcessor;
 import net.hardnorth.yelp.ingest.common.processors.SortByKeyContains;
 import org.apache.beam.sdk.Pipeline;
@@ -34,8 +35,8 @@ public class IngestCommon
 {
     private static final JsonObjectProcessor JSON_OBJECT_PROCESSOR = new JsonObjectProcessor();
     private static final JsonTableRowFunction JSON_TO_TABLE_ROW_CONVERSION_FUNCTION = new JsonTableRowFunction();
-    private static final ReadFileFully FILE_READER = new ReadFileFully();
-    private static final CombineStrings STRING_COMBINER = new CombineStrings();
+    private static final FileToStringSetFilter FILE_READER = new FileToStringSetFilter();
+    private static final StringSetFilterCombiner STRING_FILTER_COMBINER = new StringSetFilterCombiner();
 
     public static TableReference getTableReference(CommonIngestOptions options)
     {
@@ -48,11 +49,13 @@ public class IngestCommon
              String rejectedDataFileName, String invalidJsonsFileName, TableSchema schema)
     {
         // Read all business IDs into a Singleton View and create sorting function
-        PCollectionView<String> sortIds = pipeline
+        PCollectionView<StringSetFilter> sortIds = pipeline
                 .apply("Get ID files", FileIO.match().filepattern(options.getSelectedIdFile()))
                 .apply("Read ID file descriptors", FileIO.readMatches())
-                .apply("Read ID file content", MapElements.into(strings()).via(FILE_READER))
-                .apply("Combine ID file content", Combine.globally(STRING_COMBINER).asSingletonView());
+                .apply("Read ID file content", MapElements
+                        .into(TypeDescriptor.of(StringSetFilter.class))
+                        .via(FILE_READER))
+                .apply("Combine ID file content", Combine.globally(STRING_FILTER_COMBINER).asSingletonView());
         SortByKeyContains sortIdProcessor = new SortByKeyContains(sortIds);
 
         // Read all reviews into a collection and extract business_ids from them as keys

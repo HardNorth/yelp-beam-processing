@@ -1,5 +1,6 @@
 package net.hardnorth.yelp.ingest.common.conversions;
 
+import net.hardnorth.yelp.ingest.common.entity.StringSetFilter;
 import org.apache.beam.sdk.io.FileIO;
 import org.apache.beam.sdk.transforms.SerializableFunction;
 import org.slf4j.Logger;
@@ -7,16 +8,16 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class ReadFileFully implements SerializableFunction<FileIO.ReadableFile, String>
+public class FileToStringSetFilter implements SerializableFunction<FileIO.ReadableFile, StringSetFilter>
 {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ReadFileFully.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileToStringSetFilter.class);
 
     @Override
-    public String apply(FileIO.ReadableFile input)
+    public StringSetFilter apply(FileIO.ReadableFile input)
     {
         try
         {
-            return input.readFullyAsUTF8String();
+            return new StringSetFilter(input.readFullyAsUTF8String());
         }
         catch (IOException e)
         {
